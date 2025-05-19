@@ -13,10 +13,11 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      background: rgba(255,255,255,0.8);
+      background: rgba(255, 255, 255, 0.85);
       font-size: 11px;
       padding: 5px;
       text-align: center;
+      z-index: 1;
     }
   </style>
 </head>
@@ -30,7 +31,7 @@
 <script src="https://unpkg.com/maplibre-gl@3.5.1/dist/maplibre-gl.js"></script>
 <script>
   const bounds = [
-    [7.52, 51.42], // Südwest (Lon, Lat)
+    [7.52, 51.42], // Südwest
     [7.62, 51.48]  // Nordost
   ];
 
@@ -39,7 +40,7 @@
     style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
     center: [7.57, 51.45],
     zoom: 13,
-    maxBounds: bounds // Begrenzung auf Schwerte
+    maxBounds: bounds
   });
 
   map.addControl(new maplibregl.NavigationControl(), 'top-right');
@@ -68,6 +69,26 @@
         'line-color': '#003366',
         'line-width': 2
       }
+    });
+
+    // Popup bei Klick
+    map.on('click', 'polygon-fill', (e) => {
+      const props = e.features[0].properties;
+      const name = props.name || 'Unbenannt';
+      const description = props.description || 'Keine Beschreibung verfügbar';
+
+      new maplibregl.Popup()
+        .setLngLat(e.lngLat)
+        .setHTML(`<strong>${name}</strong><br>${description}`)
+        .addTo(map);
+    });
+
+    map.on('mouseenter', 'polygon-fill', () => {
+      map.getCanvas().style.cursor = 'pointer';
+    });
+
+    map.on('mouseleave', 'polygon-fill', () => {
+      map.getCanvas().style.cursor = '';
     });
   });
 </script>
