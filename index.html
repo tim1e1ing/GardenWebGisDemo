@@ -16,39 +16,43 @@
 
 <script src="https://unpkg.com/maplibre-gl@3.5.1/dist/maplibre-gl.js"></script>
 <script>
-  // Initialisiere die Karte
+  const bounds = [
+    [7.52, 51.42], // Südwest (Lon, Lat)
+    [7.62, 51.48]  // Nordost
+  ];
+
   const map = new maplibregl.Map({
     container: 'map',
-    style: 'https://demotiles.maplibre.org/style.json', // Open-Source Basemap
-    center: [7.2, 51.3], // Anfangszentrum (Lon, Lat)
-    zoom: 10
+    style: 'https://demotiles.maplibre.org/style.json', // kostenfrei, ohne API-Key
+    center: [7.57, 51.45],
+    zoom: 13,
+    maxBounds: bounds // Begrenzung auf Schwerte
   });
 
-  // Fügt Zoom und Rotation hinzu
   map.addControl(new maplibregl.NavigationControl(), 'top-right');
 
   map.on('load', () => {
-    map.addSource('polygone', {
+    map.addSource('schwerte-poly', {
       type: 'geojson',
-      data: 'data.geojson' // Externe Datei
+      data: 'data.geojson'
     });
 
     map.addLayer({
-      id: 'polygon-layer',
+      id: 'polygon-fill',
       type: 'fill',
-      source: 'polygone',
+      source: 'schwerte-poly',
       paint: {
-        'fill-color': '#088',
-        'fill-opacity': 0.5
+        'fill-color': '#0080ff',
+        'fill-opacity': 0.4
       }
     });
 
     map.addLayer({
       id: 'polygon-outline',
       type: 'line',
-      source: 'polygone',
+      source: 'schwerte-poly',
       paint: {
-        'line-color': '#000',
+        'line-color': '#003366',
         'line-width': 2
       }
     });
