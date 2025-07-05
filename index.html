@@ -89,6 +89,13 @@
                     });
                 }
 
+                console.log("Inspecting features in pointsGeoJSON");
+                    pointsGeoJSON.features.forEach((f, i) => {
+                        if (!f.geometry || !f.geometry.type || !Array.isArray(f.geometry.coordinates)) {
+                            console.warn("Bad geometry at index", i, f);
+                        }
+                    });
+
 
                                 
 
