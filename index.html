@@ -62,34 +62,33 @@
                 function extractCoordinates(geojson) {
                     return geojson.features.flatMap((f, idx) => {
                         try {
-                            if (!f.geometry || !Array.isArray(f.geometry.coordinates)) return [];
+                            const { geometry } = f;
+                            if (!geometry || !geometry.coordinates) return [];
                 
-                            const { type, coordinates } = f.geometry;
+                            const coords = geometry.coordinates;
+                            const type = geometry.type;
                 
                             switch (type) {
                                 case 'Point':
-                                    return [coordinates];
+                                    return [coords];
                                 case 'MultiPoint':
                                 case 'LineString':
-                                    return coordinates;
+                                    return coords;
                                 case 'MultiLineString':
                                 case 'Polygon':
-                                    return Array.isArray(coordinates) && coordinates.every(Array.isArray)
-                                        ? coordinates.flat()
-                                        : [];
+                                    return coords.flatMap(arr => arr);
                                 case 'MultiPolygon':
-                                    return Array.isArray(coordinates) && coordinates.every(Array.isArray)
-                                        ? coordinates.flat(2)
-                                        : [];
+                                    return coords.flatMap(polygon => polygon.flatMap(ring => ring));
                                 default:
                                     return [];
                             }
-                        } catch (e) {
-                            console.warn(`Failed to process feature at index ${idx}:`, f);
+                        } catch (err) {
+                            console.warn(`Error in feature ${idx}:`, err);
                             return [];
                         }
                     });
                 }
+
 
                                 
 
