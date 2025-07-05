@@ -60,27 +60,37 @@
 
                 // Function to extract all coordinates from GeoJSON features for bounds calculation
                 function extractCoordinates(geojson) {
-                    return geojson.features.flatMap(f => {
-                        if (!f.geometry || !Array.isArray(f.geometry.coordinates)) return [];
+                    return geojson.features.flatMap((f, idx) => {
+                        try {
+                            if (!f.geometry || !Array.isArray(f.geometry.coordinates)) return [];
                 
-                        const { type, coordinates } = f.geometry;
+                            const { type, coordinates } = f.geometry;
                 
-                        switch (type) {
-                            case 'Point':
-                                return [coordinates];
-                            case 'MultiPoint':
-                            case 'LineString':
-                                return coordinates;
-                            case 'MultiLineString':
-                            case 'Polygon':
-                                return coordinates.flat ? coordinates.flat() : coordinates;
-                            case 'MultiPolygon':
-                                return coordinates.flat ? coordinates.flat(2) : coordinates;
-                            default:
-                                return [];
+                            switch (type) {
+                                case 'Point':
+                                    return [coordinates];
+                                case 'MultiPoint':
+                                case 'LineString':
+                                    return coordinates;
+                                case 'MultiLineString':
+                                case 'Polygon':
+                                    return Array.isArray(coordinates) && coordinates.every(Array.isArray)
+                                        ? coordinates.flat()
+                                        : [];
+                                case 'MultiPolygon':
+                                    return Array.isArray(coordinates) && coordinates.every(Array.isArray)
+                                        ? coordinates.flat(2)
+                                        : [];
+                                default:
+                                    return [];
+                            }
+                        } catch (e) {
+                            console.warn(`Failed to process feature at index ${idx}:`, f);
+                            return [];
                         }
                     });
                 }
+
                                 
 
                 // Combine coordinates from all three GeoJSONs
