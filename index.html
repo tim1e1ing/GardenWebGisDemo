@@ -61,9 +61,10 @@
                 // Function to extract all coordinates from GeoJSON features for bounds calculation
                 function extractCoordinates(geojson) {
                     return geojson.features.flatMap(f => {
-                        if (!f.geometry) return [];
+                        if (!f.geometry || !Array.isArray(f.geometry.coordinates)) return [];
+                
                         const { type, coordinates } = f.geometry;
-
+                
                         switch (type) {
                             case 'Point':
                                 return [coordinates];
@@ -72,14 +73,15 @@
                                 return coordinates;
                             case 'MultiLineString':
                             case 'Polygon':
-                                return coordinates.flat();
+                                return coordinates.flat ? coordinates.flat() : coordinates;
                             case 'MultiPolygon':
-                                return coordinates.flat(2);
+                                return coordinates.flat ? coordinates.flat(2) : coordinates;
                             default:
                                 return [];
                         }
                     });
                 }
+                                
 
                 // Combine coordinates from all three GeoJSONs
                 const allCoords = [
