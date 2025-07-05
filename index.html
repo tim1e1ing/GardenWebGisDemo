@@ -96,6 +96,21 @@
                         }
                     });
 
+                console.log("Inspecting features in polygonGeoJSON");
+                    polygonGeoJSON.features.forEach((f, i) => {
+                        if (!f.geometry || !f.geometry.type || !Array.isArray(f.geometry.coordinates)) {
+                            console.warn("Bad geometry at index", i, f);
+                        }
+                    });
+
+                
+                console.log("Inspecting features in lineGeoJSON");
+                    lineGeoJSON.features.forEach((f, i) => {
+                        if (!f.geometry || !f.geometry.type || !Array.isArray(f.geometry.coordinates)) {
+                            console.warn("Bad geometry at index", i, f);
+                        }
+                    });
+
 
                                 
 
