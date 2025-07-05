@@ -49,6 +49,7 @@
                 ]);
 
 
+
                 if (!pointsResp.ok) throw new Error(`Points HTTP error! status: ${pointsResp.status}`);
                 if (!polyResp.ok) throw new Error(`Polygon HTTP error! status: ${polyResp.status}`);
                 if (!lineResp.ok) throw new Error(`Line HTTP error! status: ${lineResp.status}`);
@@ -59,47 +60,47 @@
                     lineResp.json()
                 ]);
 
-                // Function to extract all coordinates from GeoJSON features for bounds calculation
-                function extractCoordinates(geojson) {
-                    return geojson.features.flatMap(f => {
-                        if (!f.geometry) return [];
-                        const { type, coordinates } = f.geometry;
+                // // Function to extract all coordinates from GeoJSON features for bounds calculation
+                // function extractCoordinates(geojson) {
+                //     return geojson.features.flatMap(f => {
+                //         if (!f.geometry) return [];
+                //         const { type, coordinates } = f.geometry;
 
-                        switch (type) {
-                            case 'Point':
-                                return [coordinates];
-                            case 'MultiPoint':
-                            case 'LineString':
-                                return coordinates;
-                            case 'MultiLineString':
-                            case 'Polygon':
-                                return coordinates.flat();
-                            case 'MultiPolygon':
-                                return coordinates.flat(2);
-                            default:
-                                return [];
-                        }
-                    });
-                }
+                //         switch (type) {
+                //             case 'Point':
+                //                 return [coordinates];
+                //             case 'MultiPoint':
+                //             case 'LineString':
+                //                 return coordinates;
+                //             case 'MultiLineString':
+                //             case 'Polygon':
+                //                 return coordinates.flat();
+                //             case 'MultiPolygon':
+                //                 return coordinates.flat(2);
+                //             default:
+                //                 return [];
+                //         }
+                //     });
+                // }
 
-                // Combine coordinates from all three GeoJSONs
-                const allCoords = [
-                    ...extractCoordinates(pointsGeoJSON),
-                    ...extractCoordinates(polygonGeoJSON),
-                    ...extractCoordinates(lineGeoJSON)
-                ];
+                // // Combine coordinates from all three GeoJSONs
+                // const allCoords = [
+                //     ...extractCoordinates(pointsGeoJSON),
+                //     ...extractCoordinates(polygonGeoJSON),
+                //     ...extractCoordinates(lineGeoJSON)
+                // ];
 
-                let bounds = null;
+                // let bounds = null;
 
-                if (allCoords.length > 0) {
-                    const lons = allCoords.map(c => c[0]);
-                    const lats = allCoords.map(c => c[1]);
+                // if (allCoords.length > 0) {
+                //     const lons = allCoords.map(c => c[0]);
+                //     const lats = allCoords.map(c => c[1]);
 
-                    bounds = [
-                        [Math.min(...lons), Math.min(...lats)],
-                        [Math.max(...lons), Math.max(...lats)]
-                    ];
-                }
+                //     bounds = [
+                //         [Math.min(...lons), Math.min(...lats)],
+                //         [Math.max(...lons), Math.max(...lats)]
+                //     ];
+                // }
 
 
                 const blankStyle = {
@@ -120,8 +121,10 @@
                     container: 'map',
                     style: blankStyle,//'https://demotiles.maplibre.org/style.json',
                     
-                    center: bounds ? [(bounds[0][0] + bounds[1][0]) / 2, (bounds[0][1] + bounds[1][1]) / 2] : [0, 0],
-                    zoom: bounds ? 10 : 2,
+                    //center: bounds ? [(bounds[0][0] + bounds[1][0]) / 2, (bounds[0][1] + bounds[1][1]) / 2] : [0, 0],
+                    //zoom: bounds ? 10 : 2,
+                    center: [116.47695358073365, -25.73927610035696],
+                    zoom: 19,
                     maxZoom: 25,
                     
                     //bearing: 180,
