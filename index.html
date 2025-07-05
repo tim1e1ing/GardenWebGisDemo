@@ -43,7 +43,7 @@
             try {
                 // Load all 3 GeoJSON files in parallel
                 const [pointsResp, polyResp, lineResp] = await Promise.all([
-                    fetch('data/Klimagarten_3DPoints.geojson'),
+                    fetch('https://github.com/tim1e1ing/GardenWebGisDemo/blob/main/data/Klimagarten_3DPoints.geojson'), //  fetch('data/Klimagarten_3DPoints.geojson'),   
                     fetch('data/Klimagarten_Polygons.geojson'),
                     fetch('data/Klimagarten_PolyLines.geojson')
                 ]);
