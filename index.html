@@ -1,98 +1,258 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>GardenWebGisDemo</title>
-  <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <link href="https://unpkg.com/maplibre-gl@3.5.1/dist/maplibre-gl.css" rel="stylesheet" />
-  <style>
-    body { margin: 0; padding: 0; }
-    #map { position: absolute; top: 0; bottom: 30px; width: 100%; }
-    #attribution {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: rgba(255, 255, 255, 0.85);
-      font-size: 11px;
-      padding: 5px;
-      text-align: center;
-      z-index: 1;
-    }
-  </style>
+    <meta charset="utf-8" />
+    <title>MapLibre Multi GeoJSON Zoom-to-Data</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no" />
+    <link
+        href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css"
+        rel="stylesheet"
+    />
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { position: absolute; top: 40px; bottom: 0; width: 100%; }
+        #filter-container {
+            position: absolute;
+            top: 5px;
+            left: 10px;
+            z-index: 1;
+            background: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-family: sans-serif;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+    </style>
 </head>
 <body>
+    <div id="filter-container">
+        <label for="filter-select">Filter Points by Type:</label>
+        <select id="filter-select">
+            <option value="all">Alle</option>
+            <option value="Baueme">Baueme</option>
+            <option value="Pflanzen">Pflanzen</option>
+            <option value="Hecken">Hecken</option>
+        </select>
+    </div>
 
-<div id="map"></div>
-<div id="attribution">
-  Kartenstil © <a href="https://carto.com/" target="_blank">CARTO</a> | Daten © <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap-Mitwirkende</a>
-</div>
+    <div id="map"></div>
 
-<script src="https://unpkg.com/maplibre-gl@3.5.1/dist/maplibre-gl.js"></script>
-<script>
-  const bounds = [
-    [7.42, 51.35], // Südwest
-    [7.72, 51.55]  // Nordost
-  ];
+    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js"></script>
+    <script>
+        (async () => {
+            try {
+                // Load all 3 GeoJSON files in parallel
+                const [pointsResp, polyResp, lineResp] = await Promise.all([
+                    fetch('data/Klimagarten_3DPoints.geojson'),
+                    fetch('data/Klimagarten_Polygons.geojson'),
+                    fetch('data/Klimagarten_PolyLines.geojson')
+                ]);
 
-  const map = new maplibregl.Map({
-    container: 'map',
-    style: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-    //style: 'https://tiles.stadiamaps.com/styles/alidade_smooth_dark.json',
-    center: [7.57, 51.45],
-    zoom: 13,
-    maxBounds: bounds
-  });
+                if (!pointsResp.ok) throw new Error(`Points HTTP error! status: ${pointsResp.status}`);
+                if (!polyResp.ok) throw new Error(`Polygon HTTP error! status: ${polyResp.status}`);
+                if (!lineResp.ok) throw new Error(`Line HTTP error! status: ${lineResp.status}`);
 
-  map.addControl(new maplibregl.NavigationControl(), 'top-right');
+                const [pointsGeoJSON, polygonGeoJSON, lineGeoJSON] = await Promise.all([
+                    pointsResp.json(),
+                    polyResp.json(),
+                    lineResp.json()
+                ]);
 
-  map.on('load', () => {
-    map.addSource('schwerte-poly', {
-      type: 'geojson',
-      data: 'data.geojson'
-    });
+                // Function to extract all coordinates from GeoJSON features for bounds calculation
+                function extractCoordinates(geojson) {
+                    return geojson.features.flatMap(f => {
+                        if (!f.geometry) return [];
+                        const { type, coordinates } = f.geometry;
 
-    map.addLayer({
-      id: 'polygon-fill',
-      type: 'fill',
-      source: 'schwerte-poly',
-      paint: {
-        'fill-color': '#0080ff',
-        'fill-opacity': 0.4
-      }
-    });
+                        switch (type) {
+                            case 'Point':
+                                return [coordinates];
+                            case 'MultiPoint':
+                            case 'LineString':
+                                return coordinates;
+                            case 'MultiLineString':
+                            case 'Polygon':
+                                return coordinates.flat();
+                            case 'MultiPolygon':
+                                return coordinates.flat(2);
+                            default:
+                                return [];
+                        }
+                    });
+                }
 
-    map.addLayer({
-      id: 'polygon-outline',
-      type: 'line',
-      source: 'schwerte-poly',
-      paint: {
-        'line-color': '#003366',
-        'line-width': 2
-      }
-    });
+                // Combine coordinates from all three GeoJSONs
+                const allCoords = [
+                    ...extractCoordinates(pointsGeoJSON),
+                    ...extractCoordinates(polygonGeoJSON),
+                    ...extractCoordinates(lineGeoJSON)
+                ];
 
-    // Popup bei Klick
-    map.on('click', 'polygon-fill', (e) => {
-      const props = e.features[0].properties;
-      const name = props.name || 'Unbenannt';
-      const description = props.description || 'Keine Beschreibung verfügbar';
+                let bounds = null;
 
-      new maplibregl.Popup()
-        .setLngLat(e.lngLat)
-        .setHTML(`<strong>${name}</strong><br>${description}`)
-        .addTo(map);
-    });
+                if (allCoords.length > 0) {
+                    const lons = allCoords.map(c => c[0]);
+                    const lats = allCoords.map(c => c[1]);
 
-    map.on('mouseenter', 'polygon-fill', () => {
-      map.getCanvas().style.cursor = 'pointer';
-    });
+                    bounds = [
+                        [Math.min(...lons), Math.min(...lats)],
+                        [Math.max(...lons), Math.max(...lats)]
+                    ];
+                }
 
-    map.on('mouseleave', 'polygon-fill', () => {
-      map.getCanvas().style.cursor = '';
-    });
-  });
-</script>
 
+                const blankStyle = {
+                version: 8,
+                sources: {},
+                layers: [
+                    {
+                    id: 'background',
+                    type: 'background',
+                    paint: {
+                        'background-color': '#2f2f2f'  // dark grey
+                    }
+                    }
+                ]
+                };
+
+                const map = new maplibregl.Map({
+                    container: 'map',
+                    style: blankStyle,//'https://demotiles.maplibre.org/style.json',
+                    
+                    center: bounds ? [(bounds[0][0] + bounds[1][0]) / 2, (bounds[0][1] + bounds[1][1]) / 2] : [0, 0],
+                    zoom: bounds ? 10 : 2,
+                    maxZoom: 25,
+                    
+                    //bearing: 180,
+                    pitch: 90
+                    
+                });
+
+                map.on('load', () => {
+
+                    // Add all sources
+                    map.addSource('myGeoJSON', {
+                        type: 'geojson',
+                        data: pointsGeoJSON
+                    });
+
+                    map.addSource('polygone', {
+                        type: 'geojson',
+                        data: polygonGeoJSON
+                    });
+
+                    map.addSource('line', {
+                        type: 'geojson',
+                        data: lineGeoJSON
+                    });
+
+                    // Polygon layer (filled polygons)
+                    map.addLayer({
+                        id: 'geojson-layer-polygone',
+                        type: 'fill',
+                        source: 'polygone',
+                        paint: {
+                            'fill-color': 'grey',
+                            'fill-opacity': 0.4
+                        }
+                    });
+
+                    // Points layer (circles)
+                    map.addLayer({
+                        id: 'geojson-layer-points',
+                        type: 'circle',
+                        source: 'myGeoJSON',
+                        paint: {
+                            'circle-radius': 3,
+                            'circle-color': 'lightgreen'
+                        }
+                    });
+
+                    // Line layer
+                    map.addLayer({
+                        id: 'geojson-layer-line',
+                        type: 'line',
+                        source: 'line',
+                        paint: {
+                            'line-color': 'yellow',
+                            'line-width': 2
+                        }
+                    });
+
+                    if (bounds) {
+                        map.fitBounds(bounds, { padding: 20, duration: 1000 });
+                    } else {
+                        console.warn("No valid coordinates found. Map will show default view.");
+                    }
+
+
+                    // Create one popup to reuse
+                    const popup = new maplibregl.Popup({
+                        closeButton: true,
+                        closeOnClick: true
+                    });
+
+                    // Helper: format properties as HTML list with heading based on layer
+                    function propsToHTML(props, layerId) {
+                        let heading = '';
+                        if (layerId === 'geojson-layer-polygone') heading = 'Fläche';
+                        else if (layerId === 'geojson-layer-line') heading = 'Linien';
+                        else if (layerId === 'geojson-layer-points') heading = 'Punkte';
+
+                        if (!props) return `<h3>${heading}</h3><p>No properties</p>`;
+
+                        let html = `<h3>${heading}</h3><ul style="max-height:150px;overflow:auto;padding-left:15px;margin:0;">`;
+                        for (const key in props) {
+                            html += `<li><strong>${key}</strong>: ${props[key]}</li>`;
+                        }
+                        html += '</ul>';
+                        return html;
+                    }
+
+                    // Click handlers for each layer
+                    ['geojson-layer-points', 'geojson-layer-polygone', 'geojson-layer-line'].forEach(layerId => {
+                        map.on('click', layerId, (e) => {
+                            const features = map.queryRenderedFeatures(e.point, { layers: [layerId] });
+                            if (!features.length) return;
+
+                            const feature = features[0];
+                            // For Point features, popup at the feature coords; otherwise at mouse click
+                            const coords = (feature.geometry.type === 'Point')
+                                ? feature.geometry.coordinates
+                                : [e.lngLat.lng, e.lngLat.lat];
+
+                            popup
+                                .setLngLat(coords)
+                                .setHTML(propsToHTML(feature.properties, layerId))
+                                .addTo(map);
+                        });
+
+                        // Change cursor to pointer on hover
+                        map.on('mouseenter', layerId, () => {
+                            map.getCanvas().style.cursor = 'pointer';
+                        });
+                        map.on('mouseleave', layerId, () => {
+                            map.getCanvas().style.cursor = '';
+                        });
+                    });
+
+                    // Interactive filter for points
+                    document.getElementById('filter-select').addEventListener('change', (e) => {
+                        const value = e.target.value;
+
+                        if (value === 'all') {
+                            map.setFilter('geojson-layer-points', null);
+                        } else {
+                            map.setFilter('geojson-layer-points', ['==', ['get', 'type'], value]);
+                        }
+                    });
+                });
+
+            } catch (error) {
+                console.error("Error loading or parsing GeoJSON:", error);
+                alert("Failed to load GeoJSON data. Check the browser console for details.");
+            }
+        })();
+    </script>
 </body>
 </html>
