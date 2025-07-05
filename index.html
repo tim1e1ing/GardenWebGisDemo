@@ -45,7 +45,7 @@
                 const [pointsResp, polyResp, lineResp] = await Promise.all([
                     fetch('https://tim1e1ing.github.io/GardenWebGisDemo/data/Klimagarten_3DPoints.geojson'), //  fetch('data/Klimagarten_3DPoints.geojson'),   
                     fetch('https://tim1e1ing.github.io/GardenWebGisDemo/data/Klimagarten_Polygons.geojson'), //((fetch('data/Klimagarten_Polygons.geojson'),
-                    fetch('https://tim1e1ing.github.io/GardenWebGisDemo/data/Klimagarten_PolyLines.geojson'), //fetch('data/Klimagarten_PolyLines.geojson')
+                    fetch('https://tim1e1ing.github.io/GardenWebGisDemo/data/Klimagarten_PolyLines.geojson') //fetch('data/Klimagarten_PolyLines.geojson')
                 ]);
 
                 if (!pointsResp.ok) throw new Error(`Points HTTP error! status: ${pointsResp.status}`);
