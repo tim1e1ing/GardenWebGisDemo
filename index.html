@@ -76,40 +76,23 @@
                                     return coords;
                                 case 'MultiLineString':
                                 case 'Polygon':
-                                    return coords.flatMap(arr => arr);
+                                    return coords.flatMap(a => Array.isArray(a) ? a : []);
                                 case 'MultiPolygon':
-                                    return coords.flatMap(polygon => polygon.flatMap(ring => ring));
+                                    return coords.flatMap(polygon =>
+                                        Array.isArray(polygon)
+                                            ? polygon.flatMap(ring => Array.isArray(ring) ? ring : [])
+                                            : []
+                                    );
                                 default:
+                                    console.warn(`Unknown geometry type: ${type} at feature ${idx}`);
                                     return [];
                             }
                         } catch (err) {
-                            console.warn(`Error in feature ${idx}:`, err);
+                            console.warn(`Error extracting coordinates from feature ${idx}`, err, f);
                             return [];
                         }
                     });
                 }
-
-                console.log("Inspecting features in pointsGeoJSON");
-                    pointsGeoJSON.features.forEach((f, i) => {
-                        if (!f.geometry || !f.geometry.type || !Array.isArray(f.geometry.coordinates)) {
-                            console.warn("Bad geometry at index", i, f);
-                        }
-                    });
-
-                console.log("Inspecting features in polygonGeoJSON");
-                    polygonGeoJSON.features.forEach((f, i) => {
-                        if (!f.geometry || !f.geometry.type || !Array.isArray(f.geometry.coordinates)) {
-                            console.warn("Bad geometry at index", i, f);
-                        }
-                    });
-
-                
-                console.log("Inspecting features in lineGeoJSON");
-                    lineGeoJSON.features.forEach((f, i) => {
-                        if (!f.geometry || !f.geometry.type || !Array.isArray(f.geometry.coordinates)) {
-                            console.warn("Bad geometry at index", i, f);
-                        }
-                    });
 
 
                                 
